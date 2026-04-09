@@ -1,73 +1,76 @@
-# React + TypeScript + Vite
+# Printable Apolo — Catálogo de Impressão 3D
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Site estático de catálogo de produtos de impressão 3D com botões de compra direto no WhatsApp e integração opcional com Google Sheets.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Vite** + **React** + **TypeScript**
+- **Tailwind CSS v4** (tema via diretiva `@theme`, sem `tailwind.config.js`)
+- **PapaParse** — parser CSV compliant com RFC 4180
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Primeiros passos
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev      # servidor de desenvolvimento em http://localhost:5173
+npm run build    # compilação de produção (saída em dist/)
+npm run preview  # pré-visualiza o build de produção localmente
+npm run lint     # ESLint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Configuração
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Edite **`src/config.ts`** para configurar o número do WhatsApp e o ID da planilha:
+
+```ts
+// src/config.ts
+export const WHATSAPP_NUMBER = '5511999999999'; // substitua pelo número real (apenas dígitos)
+export const GOOGLE_SHEETS_ID = 'YOUR_GOOGLE_SHEETS_ID_HERE'; // substitua pelo ID da planilha
 ```
+
+### Google Sheets
+
+1. Crie uma planilha pública (Arquivo → Compartilhar → "Qualquer pessoa com o link").
+2. Certifique-se de que a **primeira linha** contenha exatamente estes cabeçalhos (nesta ordem):
+
+   | id | name | price | imageUrl | tag | salesCount | description |
+   |----|------|-------|----------|-----|------------|-------------|
+
+3. Copie o ID da URL da planilha (o trecho entre `/d/` e `/edit`) e cole em `GOOGLE_SHEETS_ID`.
+
+> Se o Google Sheets não estiver configurado ou estiver inacessível, o site exibe automaticamente 34 produtos de demonstração com um aviso no topo do catálogo.
+
+---
+
+## Estrutura do projeto
+
+```
+src/
+├── config.ts                        # número WhatsApp e ID do Sheets
+├── types/product.ts                 # interface Product
+├── services/
+│   └── googleSheetsService.ts       # fetch CSV + fallback para mock
+└── components/
+    ├── HeroSection.tsx              # banner principal com CTAs WhatsApp
+    ├── ProductCard.tsx              # card de produto
+    ├── ProductCardSkeleton.tsx      # skeleton de carregamento
+    ├── FilterBar.tsx                # busca, preço mín/máx e ordenação
+    ├── ProductGrid.tsx              # grade de produtos + paginação
+    └── Pagination.tsx               # paginação com ellipsis (30 itens/pág)
+```
+
+---
+
+## Deploy
+
+O projeto gera arquivos estáticos em `dist/` e pode ser hospedado em qualquer CDN estático (Vercel, Netlify, GitHub Pages, etc.).
+
+```bash
+npm run build
+# faça o deploy da pasta dist/
+```
+

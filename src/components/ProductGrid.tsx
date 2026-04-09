@@ -20,14 +20,16 @@ const defaultFilters: FilterState = {
 export function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [usedFallback, setUsedFallback] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchProducts()
-      .then(setProducts)
-      .catch(() => setError('Erro ao carregar produtos'))
+      .then(({ products, usedFallback }) => {
+        setProducts(products);
+        setUsedFallback(usedFallback);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -93,9 +95,9 @@ export function ProductGrid() {
         totalCount={filtered.length}
       />
 
-      {error && (
-        <div className="text-center py-12 text-red-500">
-          <p>{error}</p>
+      {usedFallback && (
+        <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
+          Exibindo produtos de demonstração. Configure o Google Sheets para ver o catálogo real.
         </div>
       )}
 

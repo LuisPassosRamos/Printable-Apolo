@@ -1,62 +1,65 @@
+import Papa from 'papaparse';
 import type { Product } from '../types/product';
 import { GOOGLE_SHEETS_CSV_URL } from '../config';
 
-function parseCSV(csv: string): Product[] {
-  const lines = csv.trim().split('\n');
-  if (lines.length < 2) return [];
-
-  // Skip header row
-  const dataLines = lines.slice(1);
-
-  return dataLines
-    .map((line, index) => {
-      // Handle quoted CSV values
-      const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      for (const char of line) {
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      values.push(current.trim());
-
-      const [id, name, price, imageUrl, tag, salesCount, description] = values;
-
-      if (!name || !price) return null;
-
-      return {
-        id: id || String(index + 1),
-        name: name || '',
-        price: parseFloat(price) || 0,
-        imageUrl: imageUrl || `https://placehold.co/400x300/2F5F73/ffffff?text=${encodeURIComponent(name || 'Produto')}`,
-        tag: tag || '',
-        salesCount: parseInt(salesCount) || 0,
-        description: description || '',
-      } as Product;
-    })
-    .filter((p): p is Product => p !== null);
+interface ParsedRow {
+  id?: string;
+  name?: string;
+  price?: string;
+  imageUrl?: string;
+  tag?: string;
+  salesCount?: string;
+  description?: string;
 }
 
-export async function fetchProducts(): Promise<Product[]> {
+export interface FetchProductsResult {
+  products: Product[];
+  usedFallback: boolean;
+}
+
+function rowToProduct(row: ParsedRow, index: number): Product | null {
+  const { id, name, price, imageUrl, tag, salesCount, description } = row;
+  if (!name || !price) return null;
+  return {
+    id: id || String(index + 1),
+    name,
+    price: parseFloat(price) || 0,
+    imageUrl: imageUrl || `https://placehold.co/400x300/2F5F73/ffffff?text=${encodeURIComponent(name)}`,
+    tag: tag || '',
+    salesCount: parseInt(salesCount ?? '0') || 0,
+    description: description || '',
+  };
+}
+
+export async function fetchProducts(): Promise<FetchProductsResult> {
   try {
     const response = await fetch(GOOGLE_SHEETS_CSV_URL);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const csv = await response.text();
-    return parseCSV(csv);
+
+    const { data, errors } = Papa.parse<ParsedRow>(csv, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h.trim(),
+      transform: (v) => v.trim(),
+    });
+
+    if (errors.length > 0 && import.meta.env.DEV) {
+      console.warn('CSV parse warnings:', errors);
+    }
+
+    const products = data
+      .map((row, i) => rowToProduct(row, i))
+      .filter((p): p is Product => p !== null);
+
+    return { products, usedFallback: false };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('Error fetching products from Google Sheets:', error);
     }
-    // Return mock data when sheets not configured
-    return getMockProducts();
+    return { products: getMockProducts(), usedFallback: true };
   }
 }
 

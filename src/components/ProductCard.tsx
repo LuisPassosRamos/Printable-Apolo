@@ -22,6 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
+            target.onerror = null;
             target.src = `https://placehold.co/400x300/2F5F73/ffffff?text=${encodeURIComponent(product.name)}`;
           }}
         />

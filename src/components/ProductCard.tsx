@@ -38,8 +38,10 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
 
-        {product.description && (
-          <p className="text-gray-500 text-xs mb-2 line-clamp-2">{product.description}</p>
+        {product.tag && (
+          <p className="text-xs font-medium text-primary mb-2 line-clamp-1">
+            {product.tag}
+          </p>
         )}
 
         <div className="mt-auto pt-3 flex items-end justify-between">

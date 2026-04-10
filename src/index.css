@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #2F5F73;
+  --color-primary: #671fa5;
   --color-secondary: #6B6F72;
 }
 
 @layer base {
   body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 }

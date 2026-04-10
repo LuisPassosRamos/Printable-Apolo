@@ -5,7 +5,7 @@ import { ProductCardSkeleton } from './ProductCardSkeleton';
 import { FilterBar } from './FilterBar';
 import type { FilterState } from './FilterBar';
 import { Pagination } from './Pagination';
-import { fetchProducts } from '../services/googleSheetsService';
+import { fetchProducts } from '../services/appSheetService';
 
 const ITEMS_PER_PAGE = 30;
 
@@ -20,15 +20,13 @@ const defaultFilters: FilterState = {
 export function ProductGrid() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usedFallback, setUsedFallback] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchProducts()
-      .then(({ products, usedFallback }) => {
+      .then(({ products }) => {
         setProducts(products);
-        setUsedFallback(usedFallback);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -94,12 +92,6 @@ export function ProductGrid() {
         onFilterChange={setFilters}
         totalCount={filtered.length}
       />
-
-      {usedFallback && (
-        <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          Exibindo produtos de demonstração. Configure o Google Sheets para ver o catálogo real.
-        </div>
-      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

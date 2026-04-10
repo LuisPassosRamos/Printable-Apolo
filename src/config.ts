@@ -1,6 +1,12 @@
 // WhatsApp configuration - change this number to configure
-export const WHATSAPP_NUMBER = '5511999999999';
+export const WHATSAPP_NUMBER = '5511946011210';
 
-// Google Sheets configuration
-export const GOOGLE_SHEETS_ID = 'YOUR_GOOGLE_SHEETS_ID_HERE';
-export const GOOGLE_SHEETS_CSV_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=0`;
+// AppSheet configuration (set these values in .env)
+export const APPSHEET_APP_ID = (import.meta.env.VITE_APPSHEET_APP_ID ?? '').trim();
+export const APPSHEET_TABLE_NAME = (import.meta.env.VITE_APPSHEET_TABLE_NAME ?? '').trim();
+export const APPSHEET_ACCESS_KEY = (import.meta.env.VITE_APPSHEET_ACCESS_KEY ?? '').trim();
+
+export const APPSHEET_ACTION_URL =
+	APPSHEET_APP_ID && APPSHEET_TABLE_NAME
+		? `https://api.appsheet.com/api/v2/apps/${APPSHEET_APP_ID}/tables/${encodeURIComponent(APPSHEET_TABLE_NAME)}/Action`
+		: '';

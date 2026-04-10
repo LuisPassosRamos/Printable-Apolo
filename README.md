@@ -1,12 +1,12 @@
-# Printable Apolo — Catálogo de Impressão 3D
+# Printable Apolo - Catalogo de Impressao 3D
 
-Site estático de catálogo de produtos de impressão 3D com botões de compra direto no WhatsApp e integração opcional com Google Sheets.
+Site estatico de catalogo de produtos de impressao 3D com botoes de compra direto no WhatsApp e integracao opcional com AppSheet.
 
 ## Stack
 
 - **Vite** + **React** + **TypeScript**
 - **Tailwind CSS v4** (tema via diretiva `@theme`, sem `tailwind.config.js`)
-- **PapaParse** — parser CSV compliant com RFC 4180
+- **AppSheet API** - leitura de dados via endpoint `/Action` com `Find`
 
 ---
 
@@ -22,27 +22,37 @@ npm run lint     # ESLint
 
 ---
 
-## Configuração
+## Configuracao
 
-Edite **`src/config.ts`** para configurar o número do WhatsApp e o ID da planilha:
+Configure o numero do WhatsApp em `src/config.ts` e adicione as credenciais do AppSheet em um arquivo `.env` na raiz do projeto:
 
-```ts
-// src/config.ts
-export const WHATSAPP_NUMBER = '5511999999999'; // substitua pelo número real (apenas dígitos)
-export const GOOGLE_SHEETS_ID = 'YOUR_GOOGLE_SHEETS_ID_HERE'; // substitua pelo ID da planilha
+```bash
+VITE_APPSHEET_APP_ID=SEU_APP_ID
+VITE_APPSHEET_TABLE_NAME=Produtos
+VITE_APPSHEET_ACCESS_KEY=SUA_CHAVE_DE_ACESSO
 ```
 
-### Google Sheets
+### AppSheet
 
-1. Crie uma planilha pública (Arquivo → Compartilhar → "Qualquer pessoa com o link").
-2. Certifique-se de que a **primeira linha** contenha exatamente estes cabeçalhos (nesta ordem):
+1. No AppSheet, abra o app e copie o `App ID`.
+2. Gere uma `Application Access Key` em Security > Integrations > In: Server API.
+3. Confirme o nome da tabela que contem o catalogo (ex: `Produtos`).
+4. Garanta que existam colunas compativeis com os campos abaixo:
 
-   | id | name | price | imageUrl | tag | salesCount | description |
-   |----|------|-------|----------|-----|------------|-------------|
+    | id | name (ou nome) | price (ou preco) | imageUrl (ou imagem) | tag (ou categoria) | salesCount (ou sales/vendas) | description (ou descricao) |
+    |----|----------------|------------------|-----------------------|--------------------|-------------------------------|----------------------------|
 
-3. Copie o ID da URL da planilha (o trecho entre `/d/` e `/edit`) e cole em `GOOGLE_SHEETS_ID`.
+5. O frontend chama o endpoint:
 
-> Se o Google Sheets não estiver configurado ou estiver inacessível, o site exibe automaticamente 34 produtos de demonstração com um aviso no topo do catálogo.
+```text
+POST https://api.appsheet.com/api/v2/apps/{APP_ID}/tables/{TABLE_NAME}/Action
+Header: ApplicationAccessKey: {ACCESS_KEY}
+Body: { "Action": "Find", "Properties": { ... }, "Rows": [] }
+```
+
+> Se o AppSheet nao estiver configurado ou estiver inacessivel, o site exibe automaticamente produtos de demonstracao com um aviso no topo do catalogo.
+>
+> Importante: a chave do AppSheet no frontend fica exposta no bundle. Para producao, use um backend/proxy para proteger a chave.
 
 ---
 
@@ -50,10 +60,10 @@ export const GOOGLE_SHEETS_ID = 'YOUR_GOOGLE_SHEETS_ID_HERE'; // substitua pelo 
 
 ```
 src/
-├── config.ts                        # número WhatsApp e ID do Sheets
+├── config.ts                        # numero WhatsApp e variaveis do AppSheet
 ├── types/product.ts                 # interface Product
 ├── services/
-│   └── googleSheetsService.ts       # fetch CSV + fallback para mock
+│   └── appSheetService.ts           # fetch AppSheet + fallback para mock
 └── components/
     ├── HeroSection.tsx              # banner principal com CTAs WhatsApp
     ├── ProductCard.tsx              # card de produto

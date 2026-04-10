@@ -1,5 +1,5 @@
 import type { Product } from '../types/product';
-import { APPSHEET_ACCESS_KEY, APPSHEET_ACTION_URL } from '../config';
+import { APPSHEET_ACCESS_KEY, APPSHEET_ACTION_URL, APPSHEET_APP_NAME, APPSHEET_TABLE_NAME } from '../config';
 
 type AppSheetRow = Record<string, unknown>;
 
@@ -52,6 +52,18 @@ function normalizeTagList(rawValue: string): string {
   return Array.from(new Set(tags)).join(', ');
 }
 
+function normalizeImageUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl;
+
+  // AppSheet stores images as relative file paths; construct the CDN URL when possible
+  if (APPSHEET_APP_NAME && APPSHEET_TABLE_NAME && APPSHEET_ACCESS_KEY) {
+    return `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(APPSHEET_APP_NAME)}&tableName=${encodeURIComponent(APPSHEET_TABLE_NAME)}&fileName=${encodeURIComponent(rawUrl)}&accessKey=${encodeURIComponent(APPSHEET_ACCESS_KEY)}`;
+  }
+
+  return rawUrl;
+}
+
 function rowToProduct(row: AppSheetRow, index: number): Product | null {
   const name = getField(row, 'name', 'nome', 'produto', 'product');
   const priceRaw = getField(
@@ -69,8 +81,9 @@ function rowToProduct(row: AppSheetRow, index: number): Product | null {
   if (!name || !priceRaw) return null;
 
   const id = getField(row, 'id');
-  const imageUrl = getField(row, 'imageUrl', 'imagem', 'image', 'foto', 'imagemurl');
-  const tag = normalizeTagList(getField(row, 'tag', 'categoria', 'categoriaid', 'type', 'tags'));
+  const imageRaw = getField(row, 'imageUrl', 'imagem', 'image', 'foto', 'imagemurl', 'img', 'thumbnail', 'picture');
+  const imageUrl = normalizeImageUrl(imageRaw);
+  const tag = normalizeTagList(getField(row, 'tag', 'categoria', 'categoriaid', 'type', 'tags', 'categorias'));
   const salesCountRaw = getField(row, 'salesCount', 'sales', 'vendas', 'vendidos', 'saidas', 'saída', 'saida');
   const description = getField(row, 'description', 'descricao', 'detalhes');
 

@@ -1,47 +1,35 @@
+import { useState, useEffect, useMemo } from 'react';
+import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { ProductGrid } from './components/ProductGrid';
-import { WHATSAPP_NUMBER } from './config';
+import type { Product } from './types/product';
+import { fetchProducts } from './services/appSheetService';
 
 function App() {
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Olá! Gostaria de fazer um pedido.')}`;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTag, setSelectedTag] = useState('');
+
+  useEffect(() => {
+    fetchProducts()
+      .then(({ products }) => setProducts(products))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const tags = useMemo(() => {
+    const all = products.flatMap((p) =>
+      p.tag ? p.tag.split(', ').map((t) => t.trim()).filter(Boolean) : []
+    );
+    return Array.from(new Set(all)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [products]);
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="absolute top-0 left-0 w-full z-30">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-7 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-white">
-            <img src="/Logo_white.png" alt="Olympus 3D" className="w-20 h-20 object-contain" />
-            <span className="font-semibold tracking-wide text-sm md:text-base">Olympus 3D</span>
-          </div>
-
-          <nav className="hidden lg:flex items-center gap-8 text-sm text-white/90">
-            <a href="#" className="hover:text-white transition-colors">Homepage</a>
-            <a href="#catalogo" className="hover:text-white transition-colors">Catálogo</a>
-            <a href="#catalogo" className="hover:text-white transition-colors">Categorias <span className="text-[10px]">▼</span></a>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border border-white/70 px-4 py-2 rounded-md hover:bg-white hover:text-primary transition-colors font-semibold"
-            >
-              Fazer Pedido
-            </a>
-          </nav>
-
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="lg:hidden border border-white/70 text-white text-xs font-semibold px-3 py-1.5 rounded-md"
-          >
-            WhatsApp
-          </a>
-        </div>
-      </header>
+      <Header tags={tags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
 
       <main>
         <HeroSection />
-        <ProductGrid />
+        <ProductGrid products={products} loading={loading} selectedTag={selectedTag} />
       </main>
 
       <footer className="bg-gray-900 text-gray-400 py-8 mt-12">

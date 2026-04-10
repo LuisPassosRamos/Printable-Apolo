@@ -42,16 +42,16 @@ export function Header({ tags, selectedTag, onSelectTag }: HeaderProps) {
   return (
     <header
       className={`fixed top-0 left-0 w-full z-30 transition-all duration-300 ${
-        scrolled ? 'bg-primary/95 backdrop-blur-sm shadow-md' : ''
+        scrolled ? 'bg-secondary/95 backdrop-blur-sm shadow-md' : ''
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-7 flex items-center justify-between">
         <div className="flex items-center gap-3 text-white">
           <img src={logoUrl} alt="Olympus 3D" className="w-20 h-20 object-contain" />
-          <span className="font-semibold tracking-wide text-sm md:text-base">Olympus 3D</span>
+          <span className="text-primary font-bold tracking-wide text-sm md:text-base">Olympus 3D</span>
         </div>
 
-        <nav className="hidden lg:flex items-center gap-8 text-sm text-white/90">
+        <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-primary">
           <a href="#" className="hover:text-white transition-colors">Homepage</a>
           <a href="#catalogo" className="hover:text-white transition-colors">Catálogo</a>
 
@@ -113,7 +113,8 @@ export function Header({ tags, selectedTag, onSelectTag }: HeaderProps) {
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="border border-white/70 px-4 py-2 rounded-md hover:bg-white hover:text-primary transition-colors font-semibold"
+            className="inline-flex items-center justify-center gap-2 bg-secondary/95 text-primary px-8 py-4 rounded-md font-bold text-sm hover:opacity-90 transition-all"
+            
           >
             Fazer Pedido
           </a>
@@ -123,7 +124,7 @@ export function Header({ tags, selectedTag, onSelectTag }: HeaderProps) {
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="lg:hidden border border-white/70 text-white text-xs font-semibold px-3 py-1.5 rounded-md"
+          className="lg:hidden border border-primary/70 text-primary text-xs font-semibold px-3 py-1.5 rounded-md"
         >
           WhatsApp
         </a>

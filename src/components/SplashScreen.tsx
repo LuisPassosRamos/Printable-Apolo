@@ -17,7 +17,7 @@ export function SplashScreen({ onHide }: SplashScreenProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-primary flex flex-col items-center justify-center ${
+      className={`fixed inset-0 z-50 bg-secondary flex flex-col items-center justify-center ${
         fadingOut ? 'animate-fade-out' : ''
       }`}
       onAnimationEnd={() => {
@@ -29,9 +29,6 @@ export function SplashScreen({ onHide }: SplashScreenProps) {
         alt="Olympus 3D"
         className="w-32 h-32 object-contain animate-fade-in-up"
       />
-      <p className="text-white font-semibold text-xl mt-4 tracking-wider animate-fade-in-delayed">
-        Olympus 3D
-      </p>
     </div>
   );
 }

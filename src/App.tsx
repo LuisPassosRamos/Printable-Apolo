@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
 import { ProductGrid } from './components/ProductGrid';
+import { SplashScreen } from './components/SplashScreen';
 import type { Product } from './types/product';
 import { fetchProducts } from './services/appSheetService';
 
@@ -9,6 +10,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState('');
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     fetchProducts()
@@ -25,6 +27,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
+      {showSplash && <SplashScreen onHide={() => setShowSplash(false)} />}
+
       <Header tags={tags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
 
       <main>

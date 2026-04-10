@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
-  base: '/Printable-Apolo/',
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/Printable-Apolo/' : '/',
   plugins: [react()],
-})
+}))

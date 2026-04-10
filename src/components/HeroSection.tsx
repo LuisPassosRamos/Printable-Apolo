@@ -9,7 +9,7 @@ export function HeroSection() {
   return (
     <section className="relative min-h-[100svh] w-full overflow-hidden text-white flex items-center justify-center">
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 animate-fade-in"
         style={{
           backgroundImage: `url('${heroBgUrl}')`,
           backgroundSize: 'cover',
@@ -30,7 +30,7 @@ export function HeroSection() {
         }}
       />
 
-      <div className="relative z-10 max-w-4xl text-center px-6 pt-28 md:pt-20 pb-40">
+      <div className="relative z-10 max-w-4xl text-center px-6 pt-28 md:pt-20 pb-40 animate-hero-content">
         <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
           Transforme ideias em
           <br />

@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/Printable-Apolo/' : '/',
+// https://vitejs.dev/config/
+export default defineConfig({
   plugins: [react()],
-}))
+  base: '/printable-apolo/', // Adicione esta linha com o nome do seu repositório
+})

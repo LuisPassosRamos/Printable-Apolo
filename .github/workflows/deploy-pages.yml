@@ -36,7 +36,7 @@ jobs:
         env:
           VITE_APPSHEET_APP_NAME: ${{ vars.VITE_APPSHEET_APP_NAME }}
           VITE_APPSHEET_TABLE_NAME: ${{ vars.VITE_APPSHEET_TABLE_NAME }}
-          # Se o seu app exigir a Access Key para ler os dados, remova o '#' da linha abaixo e use a aba Secrets
+          VITE_APPSHEET_APP_ID: ${{ secrets.VITE_APPSHEET_APP_ID }}
           VITE_APPSHEET_ACCESS_KEY: ${{ secrets.VITE_APPSHEET_ACCESS_KEY }}
 
       - name: Setup Pages

@@ -8,7 +8,7 @@ const SPLASH_DISPLAY_DURATION_MS = 1500;
 
 export function SplashScreen({ onHide }: SplashScreenProps) {
   const [fadingOut, setFadingOut] = useState(false);
-  const logoUrl = `${import.meta.env.BASE_URL}Logo_white.png`;
+  const logoUrl = `${import.meta.env.BASE_URL}Logo_white.webp`;
 
   useEffect(() => {
     const timer = setTimeout(() => setFadingOut(true), SPLASH_DISPLAY_DURATION_MS);

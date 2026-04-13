@@ -9,7 +9,7 @@ interface HeaderProps {
 
 export function Header({ tags, selectedTag, onSelectTag }: HeaderProps) {
   const whatsappUrl = createWhatsAppUrl(getWhatsAppMessage('order'));
-  const logoUrl = `${import.meta.env.BASE_URL}Logo_white.png`;
+  const logoUrl = `${import.meta.env.BASE_URL}Logo_white.webp`;
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

@@ -3,7 +3,7 @@ import { createWhatsAppUrl, getWhatsAppMessage } from '../utils/whatsapp';
 export function HeroSection() {
   const whatsappUrl = createWhatsAppUrl(getWhatsAppMessage('quote'));
   const whatsappContactUrl = createWhatsAppUrl(getWhatsAppMessage('contact'));
-  const heroBgUrl = `${import.meta.env.BASE_URL}Hero_bg.png`;
+  const heroBgUrl = `${import.meta.env.BASE_URL}Hero_bg.webp`;
   const heroBackgroundStyle = {
     backgroundImage: `url('${heroBgUrl}')`,
     backgroundSize: 'cover',

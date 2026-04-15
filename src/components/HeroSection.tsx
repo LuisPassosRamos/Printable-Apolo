@@ -12,11 +12,9 @@ export function HeroSection() {
 
   const heroOverlayStyle = {
     background:
-      'radial-gradient(circle at center, rgba(103, 31, 166, 0.10) 0%, rgba(103, 31, 166, 0.06) 34%, rgba(103, 31, 166, 0.03) 68%, rgba(103, 31, 166, 0) 100%)',
+      'radial-gradient(circle at center, rgba(8, 12, 22, 0.72) 0%, rgba(8, 12, 22, 0.55) 28%, rgba(8, 12, 22, 0.28) 56%, rgba(8, 12, 22, 0.08) 78%, rgba(8, 12, 22, 0) 100%), radial-gradient(circle at center, rgba(103, 31, 166, 0.16) 0%, rgba(103, 31, 166, 0.08) 42%, rgba(103, 31, 166, 0.02) 74%, rgba(103, 31, 166, 0) 100%)',
     backdropFilter: 'blur(5px)',
     WebkitBackdropFilter: 'blur(5px)',
-    WebkitMaskImage: 'radial-gradient(circle at center, black 0%, black 72%, transparent 100%)',
-    maskImage: 'radial-gradient(circle at center, black 0%, black 72%, transparent 100%)',
   } as const;
 
   return (

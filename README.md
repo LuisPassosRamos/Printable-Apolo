@@ -1,12 +1,12 @@
 # Printable Apolo - Catalogo de Impressao 3D
 
-Site estatico de catalogo de produtos de impressao 3D com botoes de compra direto no WhatsApp e integracao opcional com AppSheet.
+Site estatico de catalogo de produtos de impressao 3D com botoes de compra direto no WhatsApp e integracao com Google Sheets.
 
 ## Stack
 
 - **Vite** + **React** + **TypeScript**
 - **Tailwind CSS v4** (tema via diretiva `@theme`, sem `tailwind.config.js`)
-- **AppSheet API** - leitura de dados via endpoint `/Action` com `Find`
+- **Google Sheets** - leitura de dados via URL publicada (CSV ou JSON)
 
 ---
 
@@ -33,40 +33,46 @@ cp .env.example .env
 Depois preencha os valores:
 
 ```bash
-VITE_APPSHEET_APP_ID=SEU_APP_ID
-VITE_APPSHEET_TABLE_NAME=Produtos
-VITE_APPSHEET_ACCESS_KEY=SUA_CHAVE_DE_ACESSO
+# obrigatorio (link CSV publicado ou endpoint JSON)
+VITE_GOOGLE_SHEETS_JSON_URL=
 ```
 
 ### Seguranca (frontend-only)
 
-- Este projeto eh estatico e usa AppSheet direto no navegador.
-- Qualquer chave `VITE_*` pode ser extraida por usuarios finais.
-- Use uma chave de baixo privilegio (somente leitura) e rotacione periodicamente.
+- Este projeto eh estatico e consome Google Sheets direto no navegador.
+- Qualquer variavel `VITE_*` pode ser extraida por usuarios finais.
+- Prefira planilha/endpoint somente leitura para catalogo publico.
 - Nunca commite `.env` com credenciais reais.
 - Mantenha no repositorio apenas `.env.example`.
 
-### AppSheet
+### Google Sheets
 
-1. No AppSheet, abra o app e copie o `App ID`.
-2. Gere uma `Application Access Key` em Security > Integrations > In: Server API.
-3. Confirme o nome da tabela que contem o catalogo (ex: `Produtos`).
-4. Garanta que existam colunas compativeis com os campos abaixo:
+1. Publique sua planilha e copie a URL CSV/JSON de leitura.
+2. Use o schema abaixo na planilha:
 
-    | id | name (ou nome) | price (ou preco) | imageUrl (ou imagem) | tag (ou categoria) | salesCount (ou sales/vendas) | description (ou descricao) |
-    |----|----------------|------------------|-----------------------|--------------------|-------------------------------|----------------------------|
+    | ID | PRODUTO | IMAGEM | CUSTO DE PRODUCAO | VALOR DE VENDA | TAG | SAIDAS | IMAGEM_PATH |
+    |----|---------|--------|-------------------|----------------|-----|--------|-------------|
 
-5. O frontend chama o endpoint:
+3. Regras de mapeamento no frontend:
+
+    - Preco exibido no catalogo: sempre `VALOR DE VENDA`.
+    - Imagem exibida: somente `IMAGEM_PATH` (URL publica, preferencialmente Drive).
+    - `CUSTO DE PRODUCAO` permanece na base para operacao interna (nao exibido no card).
+
+4. Configure `VITE_GOOGLE_SHEETS_JSON_URL` com a URL de leitura publica.
+5. Exemplo de CSV publicado suportado:
 
 ```text
-POST https://api.appsheet.com/api/v2/apps/{APP_ID}/tables/{TABLE_NAME}/Action
-Header: ApplicationAccessKey: {ACCESS_KEY}
-Body: { "Action": "Find", "Properties": { ... }, "Rows": [] }
+https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv
 ```
 
-> Se o AppSheet nao estiver configurado ou estiver inacessivel, o site exibe automaticamente produtos de demonstracao com um aviso no topo do catalogo.
->
-> Importante: a chave do AppSheet no frontend fica exposta no bundle. Se decidir continuar sem backend, trate a chave como publica e de baixo privilegio.
+### Imagens
+
+O frontend consome apenas links publicos em `IMAGEM_PATH` (exemplo: `https://drive.google.com/uc?export=view&id=...`). Se `IMAGEM_PATH` estiver vazio, o card usa placeholder local.
+
+### AppSheet
+
+O AppSheet pode continuar sendo usado como interface visual para cadastrar/editar/remover estoque. As alteracoes precisam refletir na planilha conectada ao site.
 
 ---
 
@@ -74,10 +80,10 @@ Body: { "Action": "Find", "Properties": { ... }, "Rows": [] }
 
 ```
 src/
-├── config.ts                        # numero WhatsApp e variaveis do AppSheet
+├── config.ts                        # numero WhatsApp e variaveis do Google Sheets
 ├── types/product.ts                 # interface Product
 ├── services/
-│   └── appSheetService.ts           # fetch AppSheet + fallback para mock
+│   └── appSheetService.ts           # fetch Google Sheets + mapeamento para Product
 └── components/
     ├── HeroSection.tsx              # banner principal com CTAs WhatsApp
     ├── ProductCard.tsx              # card de produto

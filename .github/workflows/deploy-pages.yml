@@ -32,12 +32,8 @@ jobs:
 
       - name: Build
         run: npm run build
-        # AQUI ESTÁ O AJUSTE: Injetando as variáveis de ambiente no build
         env:
-          VITE_APPSHEET_APP_NAME: ${{ vars.VITE_APPSHEET_APP_NAME }}
-          VITE_APPSHEET_TABLE_NAME: ${{ vars.VITE_APPSHEET_TABLE_NAME }}
-          VITE_APPSHEET_APP_ID: ${{ secrets.VITE_APPSHEET_APP_ID }}
-          VITE_APPSHEET_ACCESS_KEY: ${{ secrets.VITE_APPSHEET_ACCESS_KEY }}
+          VITE_GOOGLE_SHEETS_JSON_URL: ${{ vars.VITE_GOOGLE_SHEETS_JSON_URL }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

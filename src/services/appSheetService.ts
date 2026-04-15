@@ -1,34 +1,36 @@
 import type { Product } from '../types/product';
-import { APPSHEET_ACCESS_KEY, APPSHEET_ACTION_URL, APPSHEET_APP_NAME, APPSHEET_TABLE_NAME } from '../config';
+import { GOOGLE_SHEETS_JSON_URL } from '../config';
 import { getFallbackImageDataUrl } from '../utils/image';
 
-type AppSheetRow = Record<string, unknown>;
+type SheetsRow = Record<string, unknown>;
 
 export interface FetchProductsResult {
   products: Product[];
 }
 
-let warnedMissingImageConfig = false;
-const ALLOWED_IMAGE_HOSTS = new Set([
-  'appsheet.com',
-  'www.appsheet.com',
-  'placehold.co',
-]);
-
-function isAllowedImageHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  return (
-    ALLOWED_IMAGE_HOSTS.has(host) ||
-    host.endsWith('.appsheet.com') ||
-    host.endsWith('.appsheetusercontent.com')
-  );
-}
-
 function toSafeAbsoluteUrl(rawUrl: string): string {
   try {
-    const url = new URL(rawUrl);
+    const cleanedUrl = rawUrl
+      .trim()
+      .replace(/^"+|"+$/g, '')
+      .replace(/&amp;/gi, '&')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+    const url = new URL(cleanedUrl);
     if (url.protocol !== 'https:') return '';
-    if (!isAllowedImageHost(url.hostname)) return '';
+
+    // Convert Google Drive URLs to thumbnail endpoint, which is typically
+    // more reliable for <img> rendering across browsers.
+    if (url.hostname === 'drive.google.com') {
+      const pathMatch = /^\/file\/d\/([^/]+)/.exec(url.pathname);
+      const idFromPath = pathMatch?.[1];
+      const idFromQuery = url.searchParams.get('id');
+      const id = idFromPath || idFromQuery;
+      if (id) {
+        return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1200`;
+      }
+    }
+
     return url.toString();
   } catch {
     return '';
@@ -43,7 +45,7 @@ function normalizeKey(value: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-function getField(row: AppSheetRow, ...candidateKeys: string[]): string {
+function getField(row: SheetsRow, ...candidateKeys: string[]): string {
   const entries = Object.entries(row);
   for (const key of candidateKeys) {
     const normalizedKey = normalizeKey(key);
@@ -80,39 +82,14 @@ function normalizeTagList(rawValue: string): string {
   return Array.from(new Set(tags)).join(', ');
 }
 
-function isLikelyImageValue(value: string): boolean {
-  const v = value.trim();
-  if (!v) return false;
+function getImageField(row: SheetsRow): string {
+  // Security-first rule:
+  // prefer IMAGEM_PATH (public URL). If empty, accept IMAGEM only when it is already a URL.
+  const imagePath = getField(row, 'imagem_path', 'image_path', 'imagempath', 'imagepath');
+  if (imagePath) return imagePath;
 
-  // AppSheet commonly returns relative paths like "Table 1_Images/file.jpg".
-  if (v.includes('_Images/')) return true;
-
-  // Absolute image URL or filename with common image extension.
-  return /\.(png|jpe?g|gif|webp|avif|bmp|svg)(\?.*)?$/i.test(v);
-}
-
-function getImageField(row: AppSheetRow): string {
-  const fromKnownKeys = getField(
-    row,
-    'imageUrl',
-    'imagem',
-    'image',
-    'foto',
-    'imagemurl',
-    'img',
-    'thumbnail',
-    'picture',
-    '-'
-  );
-
-  if (fromKnownKeys) return fromKnownKeys;
-
-  // Fallback for unconventional schemas/headers in AppSheet.
-  for (const [, rawValue] of Object.entries(row)) {
-    if (rawValue === null || rawValue === undefined) continue;
-    const value = String(rawValue).trim();
-    if (isLikelyImageValue(value)) return value;
-  }
+  const image = getField(row, 'imagem', 'image', 'foto', 'imageUrl', 'imagemurl');
+  if (/^(https?:)?\/\//i.test(image)) return image;
 
   return '';
 }
@@ -123,7 +100,7 @@ function normalizeImageUrl(rawUrl: string): string {
   const value = rawUrl.trim();
   if (!value) return '';
 
-  // Keep absolute URLs untouched (http/https/data/blob/etc.)
+  // Keep absolute URLs untouched when they are safe.
   if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value)) {
     return toSafeAbsoluteUrl(value);
   }
@@ -131,44 +108,22 @@ function normalizeImageUrl(rawUrl: string): string {
   // Convert protocol-relative URLs to explicit https
   if (value.startsWith('//')) return toSafeAbsoluteUrl(`https:${value}`);
 
-  // AppSheet image columns often return relative paths (with or without leading slash)
-  // that must be resolved through gettablefileurl.
-  const normalizedFileName = value.replace(/^\/+/, '');
-
-  // gettablefileurl requires appName (display name in AppSheet), not appId.
-  if (!APPSHEET_APP_NAME || !APPSHEET_TABLE_NAME || !APPSHEET_ACCESS_KEY) {
-    if (import.meta.env.DEV && !warnedMissingImageConfig) {
-      warnedMissingImageConfig = true;
-      console.warn(
-        'AppSheet image URL config incomplete. Set VITE_APPSHEET_APP_NAME, VITE_APPSHEET_TABLE_NAME and VITE_APPSHEET_ACCESS_KEY to render image attachments.'
-      );
-    }
-    return '';
-  }
-
-  const encodedFileName = encodeURIComponent(normalizedFileName).replace(/%2F/g, '/');
-
-  // AppSheet stores images as relative file paths; construct the CDN URL when possible
-  if (normalizedFileName) {
-    const appSheetUrl = `https://www.appsheet.com/template/gettablefileurl?appName=${encodeURIComponent(APPSHEET_APP_NAME)}&tableName=${encodeURIComponent(APPSHEET_TABLE_NAME)}&fileName=${encodedFileName}&accessKey=${encodeURIComponent(APPSHEET_ACCESS_KEY)}`;
-    return toSafeAbsoluteUrl(appSheetUrl);
-  }
-
-  return value;
+  // Relative paths are intentionally ignored.
+  return '';
 }
 
-function rowToProduct(row: AppSheetRow, index: number): Product | null {
+function rowToProduct(row: SheetsRow, index: number): Product | null {
   const name = getField(row, 'name', 'nome', 'produto', 'product');
   const priceRaw = getField(
     row,
+    // New schema: prefer VALOR DE VENDA for catalog price.
+    'valordevenda',
+    'vendaprecio',
     'price',
     'preco',
     'valor',
     'valorunitario',
-    'unitprice',
-    'valordevenda',
-    'vendaprecio',
-    'custodeproducao'
+    'unitprice'
   );
 
   if (!name || !priceRaw) return null;
@@ -187,55 +142,141 @@ function rowToProduct(row: AppSheetRow, index: number): Product | null {
     imageUrl: imageUrl || getFallbackImageDataUrl(name),
     tag,
     salesCount: Math.trunc(parseNumber(salesCountRaw)),
-    description: description || `Produto cadastrado no AppSheet: ${name}`,
+    description: description || `Produto cadastrado no Google Sheets: ${name}`,
   };
 }
 
-function extractRows(payload: unknown): AppSheetRow[] {
+function extractRows(payload: unknown): SheetsRow[] {
   if (Array.isArray(payload)) {
-    return payload.filter((item): item is AppSheetRow => !!item && typeof item === 'object');
+    return payload.filter((item): item is SheetsRow => !!item && typeof item === 'object');
   }
 
   if (!payload || typeof payload !== 'object') return [];
 
-  const maybeRows = (payload as { Rows?: unknown }).Rows;
-  if (!Array.isArray(maybeRows)) return [];
+  const maybeData = (payload as { data?: unknown }).data;
+  if (Array.isArray(maybeData)) {
+    return maybeData.filter((item): item is SheetsRow => !!item && typeof item === 'object');
+  }
 
-  return maybeRows.filter((item): item is AppSheetRow => !!item && typeof item === 'object');
+  const maybeRows = (payload as { rows?: unknown }).rows;
+  if (Array.isArray(maybeRows)) {
+    return maybeRows.filter((item): item is SheetsRow => !!item && typeof item === 'object');
+  }
+
+  const maybeRowsLegacy = (payload as { Rows?: unknown }).Rows;
+  if (Array.isArray(maybeRowsLegacy)) {
+    return maybeRowsLegacy.filter((item): item is SheetsRow => !!item && typeof item === 'object');
+  }
+
+  return [];
+}
+
+function parseCsvLine(line: string): string[] {
+  const values: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+
+    if (char === '"') {
+      const next = line[i + 1];
+      if (inQuotes && next === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
+}
+
+function parseCsvRows(rawCsv: string): SheetsRow[] {
+  const lines = rawCsv
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (!lines.length) return [];
+
+  const headers = parseCsvLine(lines[0]).map((header, index) => {
+    const normalized = header.replace(/^"|"$/g, '').trim();
+    return normalized || `column_${index + 1}`;
+  });
+
+  return lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    return headers.reduce<SheetsRow>((acc, header, index) => {
+      acc[header] = (cells[index] ?? '').replace(/^"|"$/g, '').trim();
+      return acc;
+    }, {});
+  });
+}
+
+function getSheetsDataUrl(): string {
+  return GOOGLE_SHEETS_JSON_URL;
+}
+
+async function fetchSheetRows(dataUrl: string): Promise<SheetsRow[]> {
+  const response = await fetch(dataUrl, { method: 'GET' });
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    throw new Error(`HTTP ${response.status} - ${responseBody}`);
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const payload = (await response.json()) as unknown;
+    return extractRows(payload);
+  }
+
+  if (contentType.includes('text/csv') || /[?&]output=csv(?:&|$)/i.test(dataUrl)) {
+    const csvText = await response.text();
+    return parseCsvRows(csvText);
+  }
+
+  const rawText = await response.text();
+
+  try {
+    const payload = JSON.parse(rawText) as unknown;
+    const rows = extractRows(payload);
+    if (rows.length > 0) return rows;
+  } catch {
+    // Ignore JSON parse errors and try gviz parser below.
+  }
+
+  const csvRows = parseCsvRows(rawText);
+  if (csvRows.length > 0) return csvRows;
+
+  return [];
 }
 
 export async function fetchProducts(): Promise<FetchProductsResult> {
-  if (!APPSHEET_ACTION_URL || !APPSHEET_ACCESS_KEY) {
+  const sheetsDataUrl = getSheetsDataUrl();
+
+  if (!sheetsDataUrl) {
     if (import.meta.env.DEV) {
-      console.warn('AppSheet is not configured. Returning empty catalog.');
+      console.warn('Google Sheets is not configured. Set VITE_GOOGLE_SHEETS_JSON_URL.');
     }
     return { products: [] };
   }
 
   try {
-    const response = await fetch(APPSHEET_ACTION_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ApplicationAccessKey: APPSHEET_ACCESS_KEY,
-      },
-      body: JSON.stringify({
-        Action: 'Find',
-        Properties: {
-          Locale: 'pt-BR',
-          Timezone: 'E. South America Standard Time',
-        },
-        Rows: [],
-      }),
-    });
-
-    if (!response.ok) {
-      const responseBody = await response.text();
-      throw new Error(`HTTP ${response.status} - ${responseBody}`);
-    }
-
-    const payload = (await response.json()) as unknown;
-    const rows = extractRows(payload);
+    const rows = await fetchSheetRows(sheetsDataUrl);
 
     const products = rows
       .map((row, i) => rowToProduct(row, i))
@@ -243,21 +284,28 @@ export async function fetchProducts(): Promise<FetchProductsResult> {
 
     if (import.meta.env.DEV && products.length > 0) {
       const sample = products.slice(0, 3).map((p) => ({ name: p.name, imageUrl: p.imageUrl }));
-      console.info('AppSheet image mapping sample:', sample);
-      if (!APPSHEET_APP_NAME) {
-        console.warn('VITE_APPSHEET_APP_NAME is empty. Relative image paths from AppSheet will not resolve.');
+      console.info('Google Sheets mapping sample:', sample);
+      const rowsWithoutImagePath = rows.filter((row) => {
+        const imagePath = getField(row, 'imagem_path', 'image_path', 'imagempath', 'imagepath');
+        return !imagePath;
+      }).length;
+
+      if (rowsWithoutImagePath > 0) {
+        console.info(
+          `Rows with empty IMAGEM_PATH using local placeholder image: ${rowsWithoutImagePath}`
+        );
       }
     }
 
     if (import.meta.env.DEV && rows.length > 0 && products.length === 0) {
-      console.warn('AppSheet returned rows, but none matched the expected product fields.', payload);
+      console.warn('Google Sheets returned rows, but none matched the expected product fields.');
     }
 
     return { products };
   } catch (error) {
     if (import.meta.env.DEV) {
-      console.error('Error fetching products from AppSheet:', error);
+      console.error('Error fetching products from Google Sheets:', error);
     }
-    throw error instanceof Error ? error : new Error('Failed to fetch products from AppSheet');
+    throw error instanceof Error ? error : new Error('Failed to fetch products from Google Sheets');
   }
 }

@@ -6,6 +6,27 @@ interface ProductCardProps {
   product: Product;
 }
 
+function extractDriveFileId(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== 'drive.google.com') return '';
+
+    const pathMatch = /^\/file\/d\/([^/]+)/.exec(parsed.pathname);
+    if (pathMatch?.[1]) return pathMatch[1];
+
+    const queryId = parsed.searchParams.get('id');
+    return queryId?.trim() ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function toDriveThumbnailUrl(url: string): string {
+  const id = extractDriveFileId(url);
+  if (!id) return '';
+  return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1200`;
+}
+
 export function ProductCard({ product }: ProductCardProps) {
   const whatsappUrl = createWhatsAppUrl(getWhatsAppMessage('product', product.name));
 
@@ -20,8 +41,20 @@ export function ProductCard({ product }: ProductCardProps) {
           alt={product.name}
           className="w-full h-full object-cover object-top"
           loading="lazy"
+          referrerPolicy="no-referrer"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
+            const thumbnailTried = target.dataset.driveThumbnailTried === '1';
+
+            if (!thumbnailTried) {
+              const thumbnailUrl = toDriveThumbnailUrl(target.currentSrc || target.src);
+              if (thumbnailUrl && thumbnailUrl !== target.currentSrc && thumbnailUrl !== target.src) {
+                target.dataset.driveThumbnailTried = '1';
+                target.src = thumbnailUrl;
+                return;
+              }
+            }
+
             target.onerror = null;
             target.src = getFallbackImageDataUrl(product.name);
           }}
